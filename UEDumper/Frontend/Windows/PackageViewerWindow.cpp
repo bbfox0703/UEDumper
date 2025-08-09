@@ -82,8 +82,8 @@ void windows::PackageViewerWindow::renderClassOrStruct(PackageTab* tab, EngineSt
     ImGui::SameLine();
     if (ImGui::Button(merge(ICON_FA_DOWNLOAD, " Export to CE")))
     {
-        CEExporter::exportToCheatEngine(struc, "Resources/CEExports/selected.ct");
-        if (std::filesystem::exists("Resources/CEExports/selected.ct"))
+        CEExporter::exportToCheatEngine(struc, "Resources/CEExports/selected.ces");
+        if (std::filesystem::exists("Resources/CEExports/selected.ces"))
             LogWindow::Log(LogWindow::logLevels::LOGLEVEL_INFO, "PACKAGEVIEWER", "Exported struct to Cheat Engine");
         else
             LogWindow::Log(LogWindow::logLevels::LOGLEVEL_ERROR, "PACKAGEVIEWER", "Failed to export struct to Cheat Engine");
