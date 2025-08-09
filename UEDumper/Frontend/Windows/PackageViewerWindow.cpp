@@ -6,6 +6,8 @@
 #include "Frontend/IGHelper.h"
 #include "Frontend/Fonts/fontAwesomeHelper.h"
 #include "Frontend/Texture/TextureCreator.h"
+#include "Engine/Generation/CEExporter.h"
+#include <filesystem>
 
 
 void windows::PackageViewerWindow::renderSubTypes(const fieldType& type, bool inChild)
@@ -76,6 +78,15 @@ void windows::PackageViewerWindow::renderClassOrStruct(PackageTab* tab, EngineSt
         sprintf_s(address, "0x%llX", struc.memoryAddress);
         IGHelper::copyToClipBoard(std::string(address));
         LogWindow::Log(LogWindow::logLevels::LOGLEVEL_INFO, "PACKAGEVIEWER", "Copied address to clipboard!");
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(merge(ICON_FA_DOWNLOAD, " Export to CE")))
+    {
+        CEExporter::exportToCheatEngine(struc, "Resources/CEExports/selected.ct");
+        if (std::filesystem::exists("Resources/CEExports/selected.ct"))
+            LogWindow::Log(LogWindow::logLevels::LOGLEVEL_INFO, "PACKAGEVIEWER", "Exported struct to Cheat Engine");
+        else
+            LogWindow::Log(LogWindow::logLevels::LOGLEVEL_ERROR, "PACKAGEVIEWER", "Failed to export struct to Cheat Engine");
     }
     ImGui::SameLine();
     //render some infos in green
