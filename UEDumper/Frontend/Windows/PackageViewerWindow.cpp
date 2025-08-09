@@ -2,6 +2,7 @@
 #include "EditWindow.h"
 #include "LogWindow.h"
 #include "Engine/Core/Core.h"
+#include "Memory/Memory.h"
 #include "Frontend/IGHelper.h"
 #include "Frontend/Fonts/fontAwesomeHelper.h"
 #include "Frontend/Texture/TextureCreator.h"
@@ -79,7 +80,7 @@ void windows::PackageViewerWindow::renderClassOrStruct(PackageTab* tab, EngineSt
     ImGui::SameLine();
     //render some infos in green
     ImGui::PushStyleColor(ImGuiCol_Text, IGHelper::Colors::commentGreen);
-    ImGui::Text("Memory address: 0x%p", struc.memoryAddress);
+    ImGui::Text("Memory address: 0x%llX", struc.memoryAddress);
     if (struc.isClass)
         ImGui::Text("Class index: %d", struc.owningVectorIndex);
     else
@@ -275,7 +276,7 @@ void windows::PackageViewerWindow::renderEnum(const EngineStructs::Enum& enu)
     }
     ImGui::SameLine();
     ImGui::PushStyleColor(ImGuiCol_Text, IGHelper::Colors::commentGreen);
-    ImGui::Text("Memory address: 0x%p", enu.memoryAddress);
+    ImGui::Text("Memory address: 0x%llX", enu.memoryAddress);
     ImGui::Text("Enum index: %d", enu.owningVectorIndex);
 
     ImGui::Text("Items: %d", enu.members.size());
@@ -324,7 +325,10 @@ void windows::PackageViewerWindow::renderFunction(const EngineStructs::Function&
     copyToClipBoard(reinterpret_cast<uint64_t>(&func.memoryAddress));
     ImGui::SameLine();
     ImGui::PushStyleColor(ImGuiCol_Text, IGHelper::Colors::commentGreen);
-    ImGui::Text("Memory address: 0x%p", func.memoryAddress);
+    ImGui::Text("Memory address: 0x%llX", func.memoryAddress);
+    copyToClipBoard(Memory::getBaseAddress() + func.binaryOffset);
+    ImGui::SameLine();
+    ImGui::Text("Function address in Binary: 0x%llX", Memory::getBaseAddress() + func.binaryOffset);
     ImGui::Text("Function index: %d", func.owningVectorIndex);
     ImGui::PopStyleColor();
     copyToClipBoard(func.binaryOffset);
