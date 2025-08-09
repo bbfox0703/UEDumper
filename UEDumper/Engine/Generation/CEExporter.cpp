@@ -2,6 +2,8 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <iomanip>
+#include <algorithm>
 
 namespace {
     std::string escapeXml(const std::string& str) {
@@ -19,17 +21,80 @@ namespace {
         }
         return out;
     }
+
+    std::string toLower(const std::string& str) {
+        std::string out = str;
+        std::transform(out.begin(), out.end(), out.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        return out;
+    }
+
+    std::string getVartype(const EngineStructs::Member& member) {
+        if (member.type.isPointer())
+            return "Pointer";
+
+        const std::string lower = toLower(member.type.name);
+        if (lower == "bool" || lower == "int8" || lower == "uint8" || lower == "char" || lower == "unsigned char")
+            return "Byte";
+        if (lower == "int16" || lower == "uint16" || lower == "short" || lower == "unsigned short")
+            return "2 Bytes";
+        if (lower == "int32" || lower == "uint32" || lower == "int" || lower == "unsigned int")
+            return "4 Bytes";
+        if (lower == "int64" || lower == "uint64" || lower == "long long" || lower == "unsigned long long")
+            return "8 Bytes";
+        if (lower == "float")
+            return "Float";
+        if (lower == "double")
+            return "Double";
+        if (lower.find("string") != std::string::npos || lower == "fname")
+            return "String";
+
+        int elementSize = member.size;
+        if (member.arrayDim > 1 && elementSize > 0)
+            elementSize /= member.arrayDim;
+        switch (elementSize) {
+        case 1: return "Byte";
+        case 2: return "2 Bytes";
+        case 4: return "4 Bytes";
+        case 8: return "8 Bytes";
+        default: return "Byte";
+        }
+    }
+
+    std::string getDisplayMethod(const std::string& vartype) {
+        if (vartype == "Float")
+            return "float";
+        if (vartype == "Double")
+            return "double";
+        return "unsigned integer";
+    }
 }
 
 void CEExporter::exportToCheatEngine(const EngineStructs::Struct& s, const std::string& filePath) {
     std::ostringstream xml;
-    xml << "<CheatTable><Structures>";
-    xml << "<Structure Name=\"" << escapeXml(s.cppName) << "\"><Elements>";
+    xml << "<Structures>";
+    const std::string& name = s.cppName.empty() ? std::string("unnamed structure") : s.cppName;
+    int structSize = s.maxSize > 0 ? s.maxSize : (s.size > 0 ? s.size : 4096);
+    xml << "<Structure Name=\"" << escapeXml(name) << "\" AutoFill=\"0\" AutoCreate=\"1\" DefaultHex=\"0\" AutoDestroy=\"0\" DoNotSaveLocal=\"0\" RLECompression=\"1\" AutoCreateStructsize=\"" << structSize << "\"><Elements>";
     for (const auto& member : s.definedMembers) {
-        xml << "<Element Offset=\"" << member.offset << "\" Description=\"" << escapeXml(member.name)
-            << "\" Type=\"" << escapeXml(member.type.name) << "\"/>";
+        std::string vartype = getVartype(member);
+        int elementSize = member.size;
+        if (member.arrayDim > 1 && elementSize > 0)
+            elementSize /= member.arrayDim;
+
+        xml << "<Element Offset=\"" << member.offset << "\"";
+        xml << " Vartype=\"" << vartype << "\"";
+        xml << " Bytesize=\"" << elementSize << "\"";
+        if (member.arrayDim > 1)
+            xml << " RLECount=\"" << member.arrayDim << "\"";
+        std::ostringstream offhex;
+        offhex << std::uppercase << std::setfill('0') << std::setw(8) << std::hex << member.offset;
+        xml << " OffsetHex=\"" << offhex.str() << "\"";
+        xml << " DisplayMethod=\"" << getDisplayMethod(vartype) << "\"";
+        if (!member.name.empty())
+            xml << " Description=\"" << escapeXml(member.name) << "\"";
+        xml << "/>";
     }
-    xml << "</Elements></Structure></Structures></CheatTable>";
+    xml << "</Elements></Structure></Structures>";
 
     std::filesystem::path path(filePath);
     std::filesystem::create_directories(path.parent_path());
