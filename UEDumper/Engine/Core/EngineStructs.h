@@ -285,7 +285,7 @@ namespace EngineStructs
 	{
 		Struct* owningStruct = nullptr; //the struct this function resides in
 		int owningVectorIndex = 0; //the vector index this function resides in
-		uintptr_t memoryAddress;
+               uint64_t memoryAddress;
 		fieldType returnType;
 		std::vector<std::tuple<fieldType, std::string, uint64_t, uint64_t>> params; //fieldType, name, propertyFlags, arrayDim
 		std::string fullName;
@@ -332,7 +332,7 @@ namespace EngineStructs
 		Package* owningPackage = nullptr; //the package this struct resides in
 		int owningVectorIndex = 0; //the vector index this struct resides in
 		bool isClass = false; //if struct is actually a class. Even if we have in packages a struct and class vector, every struct should know what it is
-		uintptr_t memoryAddress = 0; //the real memory address where the struct is
+               uint64_t memoryAddress = 0; //the real memory address where the struct is
 		std::string fullName; //the full name of the struct
 		std::string cppName; //the cppName of the struct
 		std::vector<std::string> superNames{}; //all the structs it inherits, empty, only used in package generation
@@ -420,7 +420,7 @@ namespace EngineStructs
 	{
 		Package* owningPackage = nullptr;
 		int owningVectorIndex = 0;
-		uintptr_t memoryAddress;
+               uint64_t memoryAddress;
 		std::string fullName;
 		std::string cppName;
 		std::string type;
