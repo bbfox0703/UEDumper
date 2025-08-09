@@ -156,6 +156,9 @@
     <ClCompile Include="Engine\Generation\MDK.cpp">
       <Filter>Engine\Generation</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Generation\CEExporter.cpp">
+      <Filter>Engine\Generation</Filter>
+    </ClCompile>
     <ClCompile Include="Resources\Dumpspace\dumpspace.cpp">
       <Filter>Resources\Dumpspace</Filter>
     </ClCompile>
@@ -282,6 +285,9 @@
       <Filter>Resources\Dumpspace</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Generation\packageSorter.h">
+      <Filter>Engine\Generation</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Generation\CEExporter.h">
       <Filter>Engine\Generation</Filter>
     </ClInclude>
     <ClInclude Include="Frontend\StrucGraph.h">
