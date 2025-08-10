@@ -7,6 +7,13 @@
 #include <vector>
 #include "Frontend/Windows/LogWindow.h"
 
+#ifdef max
+#undef max
+#endif
+#ifdef min
+#undef min
+#endif
+
 namespace {
     std::string escapeXml(const std::string& str) {
         std::string out;
