@@ -4,6 +4,8 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
+#include <vector>
+#include "Frontend/Windows/LogWindow.h"
 
 namespace {
     std::string escapeXml(const std::string& str) {
@@ -75,7 +77,46 @@ void CEExporter::exportToCheatEngine(const EngineStructs::Struct& s, const std::
     const std::string& name = s.cppName.empty() ? std::string("unnamed structure") : s.cppName;
     int structSize = s.maxSize > 0 ? s.maxSize : (s.size > 0 ? s.size : 4096);
     xml << "<Structure Name=\"" << escapeXml(name) << "\" AutoFill=\"0\" AutoCreate=\"1\" DefaultHex=\"0\" AutoDestroy=\"0\" DoNotSaveLocal=\"0\" RLECompression=\"1\" AutoCreateStructsize=\"" << structSize << "\"><Elements>";
-    for (const auto& member : s.definedMembers) {
+    for (size_t i = 0; i < s.definedMembers.size(); ++i) {
+        const auto& member = s.definedMembers[i];
+        if (member.isBit) {
+            int currentOffset = member.offset;
+            std::vector<const EngineStructs::Member*> bits{ &member };
+            size_t j = i + 1;
+            while (j < s.definedMembers.size()) {
+                const auto& next = s.definedMembers[j];
+                if (!next.isBit || next.offset != currentOffset)
+                    break;
+                bits.push_back(&next);
+                ++j;
+            }
+            int maxBit = 0;
+            for (const auto* bm : bits) {
+                maxBit = std::max(maxBit, bm->bitOffset);
+                std::string vartype = "Byte";
+                xml << "<Element Offset=\"" << currentOffset << "\"";
+                xml << " Vartype=\"" << vartype << "\"";
+                xml << " Bytesize=\"1\"";
+                std::ostringstream offhex;
+                offhex << std::uppercase << std::setfill('0') << std::setw(8) << std::hex << currentOffset;
+                xml << " OffsetHex=\"" << offhex.str() << "\"";
+                xml << " DisplayMethod=\"" << getDisplayMethod(vartype) << "\"";
+                if (!bm->name.empty())
+                    xml << " Description=\"" << escapeXml(bm->name) << "\"";
+                xml << "/>";
+            }
+            int bitsUsed = maxBit + 1;
+            int nextOffset = (j < s.definedMembers.size()) ? s.definedMembers[j].offset : currentOffset + 1;
+            if (bitsUsed < 8) {
+                if (nextOffset >= currentOffset + 1)
+                    windows::LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_INFO, "CE EXPORT", "Bitfield group at offset 0x%X uses %d bits; next member at 0x%X", currentOffset, bitsUsed, nextOffset);
+                else
+                    windows::LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_WARNING, "CE EXPORT", "Bitfield group at offset 0x%X uses %d bits but next member at 0x%X overlaps", currentOffset, bitsUsed, nextOffset);
+            }
+            i = j - 1;
+            continue;
+        }
+
         std::string vartype = getVartype(member);
         int elementSize = member.size;
         if (member.arrayDim > 1 && elementSize > 0)
