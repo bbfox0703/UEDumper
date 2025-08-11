@@ -477,9 +477,9 @@ void windows::LiveEditor::drawMemberArrayProperty(const EngineStructs::Member& m
 		return;
 
 	ImGui::PushStyleColor(ImGuiCol_Text, IGHelper::Colors::classGreen);
-	if (ImGui::TreeNode(std::string(member.type.name + "##" + secret + std::to_string(member.offset + innerOffset)).c_str()))
-	{
-		ImGui::PopStyleColor();
+        if (ImGui::TreeNode(std::string(member.type.name + "##" + secret + std::to_string(member.offset + innerOffset)).c_str()))
+        {
+                ImGui::PopStyleColor();
 		//if the TArray does not have 1 subtype its broken
 		if (member.type.subTypes.size() != 1)
 		{
@@ -587,13 +587,15 @@ void windows::LiveEditor::drawMemberArrayProperty(const EngineStructs::Member& m
 					ImGui::SameLine();
 
 					ImGui::TextColored(IGHelper::Colors::varBlue, std::string(addressBuf).c_str());
-					//add a memory block for the index struct
-					LiveMemory::addNewBlock(objPtr, st->size);
-					//and render it
-					renderStruct(st, objPtr, member.name, appendSecret(secret, member.type.name + std::to_string(objPtr), member.offset + innerOffset), "", depth + 1);
-					ImGui::TreePop();
-					continue;
-				}
+                                        //add a memory block for the index struct
+                                        LiveMemory::addNewBlock(objPtr, st->size);
+                                        //and render it
+                                        char originBuf[64] = { 0 };
+                                        sprintf_s(originBuf, "+0x%X[%d] -> 0x%llX", member.offset + innerOffset, i, objPtr);
+                                        renderStruct(st, objPtr, member.name, appendSecret(secret, member.type.name + std::to_string(objPtr), member.offset + innerOffset), originBuf, depth + 1);
+                                        ImGui::TreePop();
+                                        continue;
+                                }
 				ImGui::PopStyleColor();
 				ImGui::SameLineEx(0);
 				ImGui::Text("*");
@@ -791,20 +793,24 @@ void windows::LiveEditor::drawMemberObjectProperty(const EngineStructs::Member& 
 
 		ImGui::SameLine();
 		ImGui::TextColored(IGHelper::colToVec(255, 255, 255, 150), "0x%llX", memberPtr);
-		//check whether its a valid struct and look for the best because SDKS dont point to the right one
-		EngineStructs::Struct* newStruct;
-		//if member ptr is 0 theres nothing to display
-		if (memberPtr != 0 && isValidStructName(memberPtr, member.type.name, newStruct, true))
-		{
-			//add the new block so we can track the data for it
-			if (!LiveMemory::addNewBlock(memberPtr, newStruct->size))
-			{
-				LogWindow::Log(LogWindow::logLevels::LOGLEVEL_WARNING, "LIVEEDITOR", "Could not add new memory block for %p (%s) with size %d!", memberPtr, member.name, newStruct->size);
-			}
-			//and render it
-			else
-				renderStruct(newStruct, memberPtr, member.name, appendSecret(secret, member.type.name, member.offset + innerOffset), "", depth + 1); //secret is 0x7FF+UOject+namePrivate
-		}
+                //check whether its a valid struct and look for the best because SDKS dont point to the right one
+                EngineStructs::Struct* newStruct;
+                //if member ptr is 0 theres nothing to display
+                if (memberPtr != 0 && isValidStructName(memberPtr, member.type.name, newStruct, true))
+                {
+                        //add the new block so we can track the data for it
+                        if (!LiveMemory::addNewBlock(memberPtr, newStruct->size))
+                        {
+                                LogWindow::Log(LogWindow::logLevels::LOGLEVEL_WARNING, "LIVEEDITOR", "Could not add new memory block for %p (%s) with size %d!", memberPtr, member.name, newStruct->size);
+                        }
+                        //and render it
+                        else
+                        {
+                                char originBuf[64] = { 0 };
+                                sprintf_s(originBuf, "+0x%X -> 0x%llX", member.offset + innerOffset, memberPtr);
+                                renderStruct(newStruct, memberPtr, member.name, appendSecret(secret, member.type.name, member.offset + innerOffset), originBuf, depth + 1); //secret is 0x7FF+UOject+namePrivate
+                        }
+                }
 
 		ImGui::TreePop();
 		return;
