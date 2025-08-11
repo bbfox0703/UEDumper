@@ -1123,13 +1123,31 @@ std::vector<EngineStructs::Package>& EngineCore::getPackages()
 }
 
 
-const ObjectInfo* EngineCore::getInfoOfObject(const std::string & CName)
+const ObjectInfo* EngineCore::getInfoOfObject(const std::string& CName)
 {
-	//in functions we compare packageIndex and objectIndex anyways so the type doesnt matter
-	if (!packageObjectInfos.contains(CName))
-		return nullptr;
+        return getInfoOfObject(CName, nullptr);
+}
 
-	return &packageObjectInfos[CName];
+const ObjectInfo* EngineCore::getInfoOfObject(const std::string& CName, UStruct* uStruct)
+{
+        if (!packageObjectInfos.contains(CName) && uStruct)
+        {
+                const std::string className = uStruct->getCName();
+                if (!packageObjectInfos.contains(className))
+                {
+                        if (generateStructOrClass(uStruct, customStructs))
+                        {
+                                auto& struc = customStructs.back();
+                                struc.isClass = uStruct->IsA<UClass>();
+                                packageObjectInfos.insert(std::pair(struc.cppName, ObjectInfo(true, struc.isClass ? ObjectInfo::OI_Class : ObjectInfo::OI_Struct, &customStructs.back())));
+                        }
+                }
+        }
+
+        if (!packageObjectInfos.contains(CName))
+                return nullptr;
+
+        return &packageObjectInfos[CName];
 }
 
 

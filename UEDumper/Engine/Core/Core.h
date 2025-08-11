@@ -159,7 +159,8 @@ public:
 	 * \param CName CName  of the UObject
 	 * \return ObjectInfo of the UObject
 	 */
-	static const ObjectInfo* getInfoOfObject(const std::string& CName);
+        static const ObjectInfo* getInfoOfObject(const std::string& CName);
+        static const ObjectInfo* getInfoOfObject(const std::string& CName, UStruct* uStruct);
 
 
 
