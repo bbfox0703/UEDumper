@@ -61,7 +61,8 @@ void windows::LiveEditor::renderAddAddress()
 			tab.name = std::string(addAddressNameValue);
 			tab.address = std::stoull(st, nullptr, 16);
 
-			const std::string structName = Memory::read<UObject>(tab.address).getClass()->getCName();
+                        auto classObj = Memory::read<UObject>(tab.address).getClass();
+                        const std::string structName = classObj->getCName();
 
 			//using here goto because it makes reading the code actually better than using if else if else
 
@@ -72,8 +73,8 @@ void windows::LiveEditor::renderAddAddress()
 				return;
 			}
 
-			LogWindow::Log(LogWindow::logLevels::LOGLEVEL_ONLY_LOG, "LIVE", "Looking for %s...", structName.c_str());
-			const auto info = EngineCore::getInfoOfObject(structName);
+                        LogWindow::Log(LogWindow::logLevels::LOGLEVEL_ONLY_LOG, "LIVE", "Looking for %s...", structName.c_str());
+                        const auto info = EngineCore::getInfoOfObject(structName, classObj ? classObj->castTo<UStruct>() : nullptr);
 			if (!info || !info->valid)
 			{
 				sprintf_s(errorText, "Object not found in the packages!");
@@ -210,12 +211,12 @@ void windows::LiveEditor::renderAddOffset()
 		tab.name = std::string(displayName);
 		tab.address = address;
 
-		if (Memory::read<UObject>(followAddress).getClass())
-		{
-			const std::string structName = Memory::read<UObject>(followAddress).getClass()->getCName();
-			if (structName != "nil" && !structName.empty())
-			{
-				const auto info = EngineCore::getInfoOfObject(structName);
+                if (auto classObj = Memory::read<UObject>(followAddress).getClass())
+                {
+                        const std::string structName = classObj->getCName();
+                        if (structName != "nil" && !structName.empty())
+                        {
+                                const auto info = EngineCore::getInfoOfObject(structName, classObj ? classObj->castTo<UStruct>() : nullptr);
 				if (!info || !info->valid)
 				{
 					sprintf_s(errorText, "Object not found in the packages!");
@@ -1107,49 +1108,58 @@ void windows::LiveEditor::renderStruct(const EngineStructs::Struct* struc, uint6
 
 bool windows::LiveEditor::isValidStructName(uint64_t classPointer, const std::string& CName, EngineStructs::Struct*& outStruct, bool lookForBest)
 {
-	if (classPointer != 0 && guessSuperClass && lookForBest)
-	{
-		//get the super class by getting the uobjects class name
+        UClass* objClass = nullptr;
+        if (classPointer)
+        {
+                const auto obj = ObjectsManager::getUObject<UObject>(classPointer);
+                if (obj)
+                        objClass = obj->getClass();
+        }
 
-		std::string superName = "";
-		bool found = false;
-		//already searched this address?
-		if (realSuperClassCache.contains(classPointer))
-		{
-			superName = realSuperClassCache[classPointer];
-			found = true;
-		}
-		else
-		{
-			//we cannot use enginecores functions because some objets arent in the object list generated
-			//for the SDK! So we have to do it all here and (most likely) read data multiple times
-			const auto obj = ObjectsManager::getUObject<UObject>(classPointer);
-			if (obj->getClass())
-				superName = obj->getClass()->getCName();
-		}
-		if (superName == "nil" || superName.empty())
-			goto tryAgain;
+        if (classPointer != 0 && guessSuperClass && lookForBest)
+        {
+                //get the super class by getting the uobjects class name
 
-		const auto info = EngineCore::getInfoOfObject(superName);
-		if (!info || !info->valid || !(info->type == ObjectInfo::OI_Class || info->type == ObjectInfo::OI_Struct)) //invalid!
-			goto tryAgain;
+                std::string superName = "";
+                bool found = false;
+                //already searched this address?
+                if (realSuperClassCache.contains(classPointer))
+                {
+                        superName = realSuperClassCache[classPointer];
+                        found = true;
+                }
+                else if (objClass)
+                {
+                        //we cannot use enginecores functions because some objets arent in the object list generated
+                        //for the SDK! So we have to do it all here and (most likely) read data multiple times
+                        superName = objClass->getCName();
+                }
+                if (superName == "nil" || superName.empty())
+                        goto tryAgain;
 
-		outStruct = static_cast<EngineStructs::Struct*>(info->target);
+                const auto info = EngineCore::getInfoOfObject(superName, objClass ? objClass->castTo<UStruct>() : nullptr);
+                if (!info || !info->valid || !(info->type == ObjectInfo::OI_Class || info->type == ObjectInfo::OI_Struct)) //invalid!
+                        goto tryAgain;
 
-		//found it! Adding...
-		if (!found)
-			realSuperClassCache.insert(std::pair(classPointer, superName));
-		return true;
-	}
+                outStruct = static_cast<EngineStructs::Struct*>(info->target);
+
+                //found it! Adding...
+                if (!found)
+                        realSuperClassCache.insert(std::pair(classPointer, superName));
+                return true;
+        }
 tryAgain:
 
-	const auto info = EngineCore::getInfoOfObject(CName);
-	if (!info || !info->valid)
-		return false;
+        UStruct* genStruct = nullptr;
+        if (objClass && objClass->getCName() == CName)
+                genStruct = objClass->castTo<UStruct>();
+        const auto info = EngineCore::getInfoOfObject(CName, genStruct);
+        if (!info || !info->valid)
+                return false;
 
-	outStruct = static_cast<EngineStructs::Struct*>(info->target);
+        outStruct = static_cast<EngineStructs::Struct*>(info->target);
 
-	return true;
+        return true;
 }
 
 bool windows::LiveEditor::isValidEnumName(const std::string& CName, EngineStructs::Enum*& enu)
